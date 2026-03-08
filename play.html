@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>デカップリングチャレンジ</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at 30% 20%, #14532d 0%, transparent 55%),
+                  radial-gradient(ellipse at 70% 80%, #052e16 0%, transparent 55%),
+                  #0a1510;
+      color: #fff;
+      user-select: none;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; padding: 8px 20px;
+      background: rgba(0,0,0,0.55);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 1rem; font-weight: 700; color: #fbbf24; letter-spacing: 0.1em; text-shadow: 0 0 14px rgba(251,191,36,0.4); }
+    .chip { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 20px; font-size: 0.72rem; color: #a1a1aa; }
+    .chip b { color: #fbbf24; }
+
+    /* ── Layout ── */
+    .game { max-width: 1000px; margin: 0 auto; padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+    /* ── Player stats ── */
+    .players { display: flex; gap: 10px; justify-content: center; }
+    .p-card { background: rgba(0,0,0,0.45); border: 2px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 18px; text-align: center; min-width: 130px; backdrop-filter: blur(6px); }
+    .p-card.you { border-color: rgba(74,222,128,0.45); box-shadow: 0 0 16px rgba(74,222,128,0.1); }
+    .p-card.dead { opacity: 0.3; }
+    .p-name { font-weight: 700; font-size: 0.8rem; margin-bottom: 8px; color: #d4d4d8; }
+    .p-card.you .p-name { color: #4ade80; }
+    .p-stats { display: flex; justify-content: center; gap: 18px; }
+    .p-stat .label { font-size: 0.58rem; color: #52525b; margin-bottom: 2px; }
+    .p-stat .val { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+
+    /* ── Board center ── */
+    .board-center { display: flex; align-items: center; justify-content: center; gap: 28px; flex-wrap: wrap; }
+
+    /* ── Card base ── */
+    .card {
+      width: 120px; height: 168px;
+      border-radius: 12px;
+      position: relative;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.15);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 2px 5px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.09);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    /* Header with gradient + shine overlay */
+    .card-header {
+      flex-shrink: 0; padding: 5px 7px 4px;
+      display: flex; flex-direction: column; gap: 2px;
+      position: relative;
+    }
+    .card-header::after {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 42%; background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 100%);
+      pointer-events: none; border-radius: 11px 11px 0 0;
+    }
+    .card-header .c-name {
+      font-size: 0.6rem; font-weight: 800; color: #fff;
+      line-height: 1.2; text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      position: relative; z-index: 1;
+    }
+    .header-sub {
+      display: flex; align-items: center; gap: 4px;
+      position: relative; z-index: 1;
+    }
+    .header-cat {
+      font-size: 0.42rem; color: rgba(255,255,255,0.8);
+      font-weight: 600; letter-spacing: 0.06em;
+    }
+    .header-sub-tag {
+      font-size: 0.37rem; color: rgba(255,255,255,0.62);
+      background: rgba(0,0,0,0.28); padding: 1px 4px;
+      border-radius: 3px; border: 0.5px solid rgba(255,255,255,0.2);
+    }
+
+    /* Art area with inner frame */
+    .card-art {
+      flex-shrink: 0; height: 52px;
+      overflow: hidden; display: flex;
+      align-items: center; justify-content: center;
+      position: relative;
+    }
+    .card-art::after {
+      content: ''; position: absolute; inset: 0;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(0,0,0,0.22);
+      pointer-events: none;
+    }
+    .card-art svg { width: 100%; height: 100%; }
+
+    /* Card body with description text */
+    .card-body {
+      flex: 1; padding: 4px 6px 3px;
+      overflow: hidden; display: flex; flex-direction: column;
+    }
+    .card-desc {
+      font-size: 0.47rem; line-height: 1.55;
+      color: rgba(255,255,255,0.55);
+      display: -webkit-box;
+      -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .earth-effect {
+      font-size: 0.58rem; font-weight: 700;
+      color: rgba(255,255,255,0.9); text-align: center;
+      display: flex; align-items: center; justify-content: center;
+      flex: 1; line-height: 1.4;
+    }
+
+    /* Stats bar – stat-block layout */
+    .card-stats {
+      flex-shrink: 0; display: flex; align-items: stretch;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .stat-block {
+      flex: 1; text-align: center;
+      padding: 3px 2px 4px; line-height: 1;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .stat-label {
+      font-size: 0.4rem; font-weight: 700;
+      color: rgba(255,255,255,0.45); letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .stat-val {
+      font-size: 0.82rem; font-weight: 900;
+      font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+    }
+    .stat-divider { width: 1px; background: rgba(255,255,255,0.1); align-self: stretch; }
+    .stat-pos { color: #4ade80; } .stat-neg { color: #f87171; } .stat-zero { color: #6b7280; }
+    .stat-co2-pos { color: #f87171; } .stat-co2-neg { color: #60a5fa; }
+
+    /* Category themes – rich 3-stop gradient headers */
+    .card.c-red { background: linear-gradient(170deg,#3d0a0a,#1c0404); border-color: rgba(239,68,68,0.35); }
+    .card.c-red .card-header { background: linear-gradient(160deg,#f87171 0%,#dc2626 52%,#991b1b 100%); border-top: 2px solid rgba(252,165,165,0.6); border-bottom: 1px solid rgba(127,29,29,0.55); }
+    .card.c-red .card-art { background: linear-gradient(165deg,#3d0f0f,#1c0606); }
+    .card.c-red .card-body { border-left: 2px solid rgba(220,38,38,0.22); }
+    .card.c-red .card-stats { background: rgba(239,68,68,0.08); }
+
+    .card.c-blue { background: linear-gradient(170deg,#0d1e45,#060e22); border-color: rgba(59,130,246,0.35); }
+    .card.c-blue .card-header { background: linear-gradient(160deg,#60a5fa 0%,#2563eb 52%,#1539b0 100%); border-top: 2px solid rgba(147,197,253,0.6); border-bottom: 1px solid rgba(15,40,155,0.55); }
+    .card.c-blue .card-art { background: linear-gradient(165deg,#0c1f45,#060e22); }
+    .card.c-blue .card-body { border-left: 2px solid rgba(37,99,235,0.22); }
+    .card.c-blue .card-stats { background: rgba(59,130,246,0.08); }
+
+    .card.c-green { background: linear-gradient(170deg,#041f0e,#010e06); border-color: rgba(34,197,94,0.35); }
+    .card.c-green .card-header { background: linear-gradient(160deg,#4ade80 0%,#16a34a 52%,#0f6130 100%); border-top: 2px solid rgba(134,239,172,0.6); border-bottom: 1px solid rgba(10,70,30,0.55); }
+    .card.c-green .card-art { background: linear-gradient(165deg,#052e16,#021208); }
+    .card.c-green .card-body { border-left: 2px solid rgba(22,163,74,0.22); }
+    .card.c-green .card-stats { background: rgba(34,197,94,0.08); }
+
+    .card.c-cyan { background: linear-gradient(170deg,#03202b,#011018); border-color: rgba(34,211,238,0.35); }
+    .card.c-cyan .card-header { background: linear-gradient(160deg,#22d3ee 0%,#0891b2 52%,#0a5e78 100%); border-top: 2px solid rgba(103,232,249,0.6); border-bottom: 1px solid rgba(5,65,85,0.55); }
+    .card.c-cyan .card-art { background: linear-gradient(165deg,#042f3a,#021820); }
+    .card.c-cyan .card-body { border-left: 2px solid rgba(8,145,178,0.22); }
+    .card.c-cyan .card-stats { background: rgba(34,211,238,0.08); }
+
+    .card.c-yellow { background: linear-gradient(170deg,#261305,#120902); border-color: rgba(234,179,8,0.35); }
+    .card.c-yellow .card-header { background: linear-gradient(160deg,#fbbf24 0%,#d97706 52%,#92400e 100%); border-top: 2px solid rgba(253,230,138,0.65); border-bottom: 1px solid rgba(100,45,5,0.55); }
+    .card.c-yellow .card-art { background: linear-gradient(165deg,#2d1506,#160a02); }
+    .card.c-yellow .card-body { border-left: 2px solid rgba(180,83,9,0.22); }
+    .card.c-yellow .card-stats { background: rgba(234,179,8,0.08); }
+
+    /* Earth card themes */
+    .card.e-safe { background: linear-gradient(170deg,#041f0e,#010e06); border-color: rgba(74,222,128,0.4); }
+    .card.e-safe .card-header { background: linear-gradient(160deg,#4ade80 0%,#16a34a 52%,#0f6130 100%); border-top: 2px solid rgba(134,239,172,0.6); border-bottom: 1px solid rgba(10,70,30,0.55); }
+    .card.e-safe .card-art { background: linear-gradient(165deg,#052e16,#021208); }
+    .card.e-safe .card-body { border-left: 2px solid rgba(74,222,128,0.28); }
+
+    .card.e-warm { background: linear-gradient(170deg,#2d1203,#160901); border-color: rgba(251,146,60,0.45); }
+    .card.e-warm .card-header { background: linear-gradient(160deg,#fb923c 0%,#ea580c 52%,#9a3412 100%); border-top: 2px solid rgba(253,186,116,0.6); border-bottom: 1px solid rgba(100,40,10,0.55); }
+    .card.e-warm .card-art { background: linear-gradient(165deg,#431407,#200a03); }
+    .card.e-warm .card-body { border-left: 2px solid rgba(251,146,60,0.28); }
+
+    .card.e-recess { background: linear-gradient(170deg,#180a38,#0d041e); border-color: rgba(168,85,247,0.4); }
+    .card.e-recess .card-header { background: linear-gradient(160deg,#a855f7 0%,#7c3aed 52%,#5b21b6 100%); border-top: 2px solid rgba(216,180,254,0.6); border-bottom: 1px solid rgba(70,20,150,0.55); }
+    .card.e-recess .card-art { background: linear-gradient(165deg,#2e1065,#140430); }
+    .card.e-recess .card-body { border-left: 2px solid rgba(168,85,247,0.28); }
+
+    .card.e-storm { background: linear-gradient(170deg,#131c28,#090f17); border-color: rgba(148,163,184,0.38); }
+    .card.e-storm .card-header { background: linear-gradient(160deg,#94a3b8 0%,#64748b 52%,#334155 100%); border-top: 2px solid rgba(203,213,225,0.6); border-bottom: 1px solid rgba(30,40,55,0.55); }
+    .card.e-storm .card-art { background: linear-gradient(165deg,#1e2d40,#0c1520); }
+    .card.e-storm .card-body { border-left: 2px solid rgba(148,163,184,0.28); }
+
+    .card.e-tax { background: linear-gradient(170deg,#221302,#110901); border-color: rgba(234,179,8,0.4); }
+    .card.e-tax .card-header { background: linear-gradient(160deg,#fbbf24 0%,#d97706 52%,#92400e 100%); border-top: 2px solid rgba(253,230,138,0.6); border-bottom: 1px solid rgba(100,45,5,0.55); }
+    .card.e-tax .card-art { background: linear-gradient(165deg,#3d1f05,#1e0f02); }
+    .card.e-tax .card-body { border-left: 2px solid rgba(234,179,8,0.28); }
+
+    .card.e-war { background: linear-gradient(170deg,#3d0a0a,#1c0404); border-color: rgba(239,68,68,0.55); box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 18px rgba(239,68,68,0.18); }
+    .card.e-war .card-header { background: linear-gradient(160deg,#f87171 0%,#dc2626 52%,#991b1b 100%); border-top: 2px solid rgba(252,165,165,0.6); border-bottom: 1px solid rgba(127,29,29,0.55); }
+    .card.e-war .card-art { background: linear-gradient(165deg,#5c0f0f,#2d0606); }
+    .card.e-war .card-body { border-left: 2px solid rgba(239,68,68,0.32); }
+
+    .card.e-collapse { background: linear-gradient(170deg,#0d0000,#000000); border-color: rgba(255,50,50,0.85); box-shadow: 0 6px 20px rgba(0,0,0,0.7), 0 0 28px rgba(220,0,0,0.4), 0 0 50px rgba(255,60,0,0.18); }
+    .card.e-collapse .card-header { background: linear-gradient(160deg,#ef4444 0%,#b91c1c 52%,#7f1d1d 100%); border-top: 2px solid rgba(252,165,165,0.6); border-bottom: 1px solid rgba(100,10,10,0.55); }
+    .card.e-collapse .card-art { background: linear-gradient(165deg,#200000,#000000); }
+    .card.e-collapse .card-body { border-left: 2px solid rgba(255,50,50,0.38); }
+
+    /* Card back */
+    .card.c-back { background: linear-gradient(135deg,#1e1b4b,#312e81,#1e1b4b); border-color: rgba(99,102,241,0.35); align-items: center; justify-content: center; }
+    .card.c-back::before { content:''; position:absolute; inset:7px; border:1px solid rgba(99,102,241,0.25); border-radius:7px; pointer-events:none; }
+    .back-icon { font-size: 1.8rem; opacity: 0.35; } .back-label { font-size: 0.52rem; color: rgba(255,255,255,0.2); margin-top: 4px; }
+
+    /* ── Field ── */
+    .field { display: none; } .field.visible { display: block; }
+    .field-label { text-align: center; font-size: 0.65rem; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+    .field-row { display: flex; gap: 16px; justify-content: center; align-items: flex-end; }
+    .field-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .field-col .owner { font-size: 0.65rem; font-weight: 600; color: #52525b; }
+    .field-col .owner.you { color: #4ade80; }
+
+    /* ── Earth deck ── */
+    .deck-area { display: flex; align-items: center; gap: 14px; }
+    .deck-wrap { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .deck-stack { position: relative; width: 80px; height: 112px; }
+    .deck-stack .card { position: absolute; width: 80px; height: 112px; }
+    .deck-stack .card:nth-child(1) { transform: rotate(-3deg) translate(-2px,3px); }
+    .deck-stack .card:nth-child(2) { transform: rotate(1.5deg) translate(1px,1px); }
+    .deck-stack .card:nth-child(3) { transform: rotate(0deg); }
+    .deck-count { font-size: 0.6rem; color: #52525b; }
+    .earth-arrow { font-size: 1.3rem; color: rgba(255,255,255,0.2); }
+    .earth-revealed { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .earth-revealed-lbl { font-size: 0.58rem; color: rgba(255,255,255,0.35); }
+    .earth-revealed .card { width: 90px; height: 126px; }
+
+    /* ── Hand ── */
+    .hand-area { text-align: center; }
+    .hand-lbl { font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+    .hand { display: flex; gap: 10px; justify-content: center; align-items: flex-end; flex-wrap: wrap; padding: 0 8px 16px; }
+    .hand .card { cursor: pointer; transform-origin: bottom center; }
+    .hand .card:hover { transform: translateY(-18px) scale(1.07); z-index: 10; box-shadow: 0 18px 30px rgba(0,0,0,0.6), 0 0 20px rgba(255,255,255,0.08); }
+    .hand .card.sel { transform: translateY(-24px) scale(1.09); z-index: 10; }
+    .hand .card.sel.c-red    { border-color:#f87171; box-shadow:0 16px 30px rgba(239,68,68,0.5),0 0 20px rgba(239,68,68,0.3); }
+    .hand .card.sel.c-blue   { border-color:#60a5fa; box-shadow:0 16px 30px rgba(59,130,246,0.5),0 0 20px rgba(59,130,246,0.3); }
+    .hand .card.sel.c-green  { border-color:#4ade80; box-shadow:0 16px 30px rgba(34,197,94,0.5),0 0 20px rgba(34,197,94,0.3); }
+    .hand .card.sel.c-cyan   { border-color:#22d3ee; box-shadow:0 16px 30px rgba(34,211,238,0.5),0 0 20px rgba(34,211,238,0.3); }
+    .hand .card.sel.c-yellow { border-color:#facc15; box-shadow:0 16px 30px rgba(234,179,8,0.5),0 0 20px rgba(234,179,8,0.3); }
+
+    /* ── Actions ── */
+    .actions { display: flex; gap: 10px; justify-content: center; }
+    .btn { padding: 10px 28px; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .btn-go { background: linear-gradient(135deg,#15803d,#166534); color:#fff; border:1px solid rgba(74,222,128,0.25); box-shadow:0 4px 12px rgba(22,163,74,0.35); }
+    .btn-go:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(22,163,74,0.5); }
+    .btn-go:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-re { background: rgba(255,255,255,0.07); color: #71717a; border: 1px solid rgba(255,255,255,0.09); }
+    .btn-re:hover { background: rgba(255,255,255,0.12); color: #a1a1aa; }
+
+    /* ── Log ── */
+    .log { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px; max-height: 100px; overflow-y: auto; }
+    .log h3 { font-size: 0.62rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+    .log-e { font-size: 0.67rem; padding: 2px 0; color: rgba(255,255,255,0.45); border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .log-e.ev { color: #fbbf24; } .log-e.bad { color: #f87171; } .log-e.ok { color: #4ade80; }
+
+    /* ── Overlays ── */
+    .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.78); z-index:90; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+    .overlay.show { display: flex; }
+    .panel { background:#111827; border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:26px; text-align:center; min-width:240px; }
+    .panel h3 { color:#fbbf24; margin-bottom:14px; font-size:.92rem; }
+    .t-btn { display:block; width:100%; padding:10px; margin-bottom:7px; border:1px solid rgba(255,255,255,0.09); border-radius:8px; background:rgba(255,255,255,0.04); color:#d4d4d8; font-size:.85rem; cursor:pointer; transition:all .2s; }
+    .t-btn:hover { background:rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.4); color:#fbbf24; }
+    .modal { background:#111827; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:36px; text-align:center; max-width:420px; }
+    .modal h2 { font-size:1.5rem; margin-bottom:8px; } .modal p { color:#71717a; margin-bottom:22px; line-height:1.75; font-size:.88rem; }
+
+    /* ── Animations ── */
+    @keyframes cardIn { from { opacity:0; transform:translateY(20px) scale(0.88); } to { opacity:1; transform:none; } }
+    .card-anim { animation: cardIn 0.3s ease-out; }
+    /* ── Card info panel ── */
+    .card-info { min-height: 44px; text-align: center; padding: 6px 16px; background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; }
+    .card-info-name { font-size: 0.72rem; font-weight: 700; color: #a1a1aa; margin-bottom: 2px; }
+    .card-info-desc { font-size: 0.65rem; color: rgba(255,255,255,0.38); line-height: 1.5; }
+
+    @media(max-width:640px){
+      .card{width:95px;height:133px;} .card-art{height:40px;} .players{flex-wrap:wrap;} .p-card{min-width:100px;padding:8px 12px;}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>♠ デカップリングチャレンジ ♠</h1>
+  <div class="chip">ラウンド <b id="rnd">1</b> / 5</div>
+  <div class="chip">山札 <b id="dLeft">50</b> 枚</div>
+</header>
+
+<div class="game">
+  <div class="players" id="pRow"></div>
+
+  <div class="board-center">
+    <div class="field" id="fieldArea">
+      <div class="field-label">場に出たカード</div>
+      <div class="field-row" id="fieldRow"></div>
+    </div>
+    <div class="deck-area">
+      <div class="deck-wrap">
+        <div class="deck-stack">
+          <div class="card c-back"><div class="back-icon">🌍</div><div class="back-label">地球カード</div></div>
+          <div class="card c-back"><div class="back-icon">🌍</div><div class="back-label">地球カード</div></div>
+          <div class="card c-back"><div class="back-icon">🌍</div><div class="back-label">地球カード</div></div>
+        </div>
+        <div class="deck-count">地球カード 残り <span id="eLeft">19</span> 枚</div>
+      </div>
+      <div class="earth-arrow" id="earthArrow" style="visibility:hidden">→</div>
+      <div class="earth-revealed" id="earthLast"></div>
+    </div>
+  </div>
+
+  <div class="hand-area">
+    <div class="hand-lbl" id="hLbl">カードを1枚選んでください</div>
+    <div class="hand" id="hCards"></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-go" id="goBtn" disabled onclick="go()">カードを出す</button>
+    <button class="btn btn-re" onclick="init()">リスタート</button>
+  </div>
+
+  <div class="card-info" id="cardInfo">
+    <div class="card-info-name" id="cardInfoName"></div>
+    <div class="card-info-desc" id="cardInfoDesc">カードにカーソルを合わせると説明が表示されます</div>
+  </div>
+
+  <div class="log"><h3>ゲームログ</h3><div id="logEl"></div></div>
+</div>
+
+<div class="overlay" id="tgtOv">
+  <div class="panel"><h3>排出権取引: 誰に押し付ける？</h3><div id="tgtBtns"></div></div>
+</div>
+<div class="overlay" id="endOv">
+  <div class="modal"><h2 id="mT"></h2><p id="mP"></p><button class="btn btn-go" onclick="init()">もう一度プレイ</button></div>
+</div>
+
+<script>
+/* ─── SVG Artwork ─── */
+const ART = {
+  coal: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="56" fill="rgba(0,0,0,0.15)"/>
+    <ellipse cx="40" cy="54" rx="36" ry="7" fill="rgba(255,100,0,0.2)"/>
+    <rect x="10" y="36" width="60" height="20" fill="#1a1010" rx="2"/>
+    <rect x="18" y="16" width="9" height="22" fill="#231212" rx="2"/>
+    <rect x="34" y="10" width="11" height="28" fill="#2a1515" rx="2"/>
+    <rect x="51" y="20" width="9" height="18" fill="#231212" rx="2"/>
+    <rect x="23" y="40" width="7" height="9" fill="rgba(255,80,0,0.7)" rx="1"/>
+    <rect x="36" y="40" width="7" height="9" fill="rgba(255,60,0,0.6)" rx="1"/>
+    <rect x="50" y="40" width="7" height="9" fill="rgba(255,80,0,0.7)" rx="1"/>
+    <circle cx="22" cy="12" r="4.5" fill="rgba(60,60,60,0.8)"/>
+    <circle cx="26" cy="8" r="3.5" fill="rgba(50,50,50,0.7)"/>
+    <circle cx="19" cy="7" r="3" fill="rgba(40,40,40,0.6)"/>
+    <circle cx="39" cy="6" r="5.5" fill="rgba(60,60,60,0.8)"/>
+    <circle cx="44" cy="3" r="4" fill="rgba(50,50,50,0.7)"/>
+    <circle cx="34" cy="4" r="3.5" fill="rgba(40,40,40,0.6)"/>
+    <circle cx="55" cy="16" r="4" fill="rgba(55,55,55,0.7)"/>
+    <circle cx="60" cy="13" r="3" fill="rgba(45,45,45,0.6)"/>
+    <rect x="12" y="48" width="8" height="3" fill="rgba(255,100,0,0.15)" rx="1"/>
+    <rect x="36" y="47" width="8" height="3" fill="rgba(255,100,0,0.12)" rx="1"/>
+  </svg>`,
+
+  gas: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="52" rx="22" ry="5" fill="rgba(255,140,0,0.35)"/>
+    <ellipse cx="40" cy="46" rx="16" ry="4" fill="#1a1a1a"/>
+    <rect x="28" y="44" width="24" height="6" fill="#222" rx="3"/>
+    <path d="M24,48 Q27,30 34,18 Q37,8 40,4 Q43,8 46,18 Q53,30 56,48 Q48,43 40,43 Q32,43 24,48Z" fill="rgba(255,69,0,0.55)"/>
+    <path d="M29,48 Q32,34 37,22 Q39,13 40,9 Q41,13 43,22 Q48,34 51,48 Q46,44 40,44 Q34,44 29,48Z" fill="rgba(255,165,0,0.85)"/>
+    <path d="M33,48 Q35,38 38,28 Q39,21 40,18 Q41,21 42,28 Q45,38 47,48 Q44,46 40,46 Q36,46 33,48Z" fill="rgba(255,220,50,0.9)"/>
+    <path d="M37,48 Q38,42 39,37 Q40,33 40,31 Q40,33 41,37 Q42,42 43,48 Q41.5,47 40,47 Q38.5,47 37,48Z" fill="rgba(180,230,255,0.75)"/>
+    <ellipse cx="40" cy="48" rx="5" ry="1.5" fill="rgba(255,255,200,0.4)"/>
+  </svg>`,
+
+  ren: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="56" fill="rgba(10,20,40,0.3)"/>
+    <path d="M0,44 Q20,36 40,40 Q60,44 80,38 L80,56 L0,56Z" fill="rgba(20,50,20,0.6)"/>
+    <circle cx="62" cy="14" r="7" fill="rgba(251,191,36,0.7)"/>
+    <line x1="62" y1="4" x2="62" y2="7" stroke="rgba(251,191,36,0.5)" stroke-width="1.5"/>
+    <line x1="72" y1="14" x2="75" y2="14" stroke="rgba(251,191,36,0.5)" stroke-width="1.5"/>
+    <line x1="69" y1="7" x2="72" y2="4" stroke="rgba(251,191,36,0.4)" stroke-width="1.5"/>
+    <rect x="38.5" y="26" width="3" height="24" fill="#8a9ba8" rx="1.5"/>
+    <path d="M40,25 Q43,15 49,8 Q46,8 42,13 Q39,19 40,25Z" fill="rgba(220,230,240,0.9)"/>
+    <path d="M40,25 Q30,20 22,16 Q21,19 25,23 Q31,27 40,25Z" fill="rgba(200,215,225,0.85)"/>
+    <path d="M40,25 Q38,35 36,44 Q38,45 41,43 Q44,39 40,25Z" fill="rgba(210,222,232,0.9)"/>
+    <circle cx="40" cy="25" r="3" fill="#7a8b98"/>
+    <circle cx="40" cy="25" r="1.5" fill="#bcc8d0"/>
+  </svg>`,
+
+  grn: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="50" rx="28" ry="5" fill="rgba(34,197,94,0.15)"/>
+    <ellipse cx="40" cy="46" rx="14" ry="4" fill="rgba(20,83,45,0.8)"/>
+    <ellipse cx="40" cy="43" rx="14" ry="4" fill="rgba(22,101,52,0.7)"/>
+    <ellipse cx="40" cy="40" rx="14" ry="4" fill="rgba(21,128,61,0.6)"/>
+    <path d="M40,40 Q39,28 40,13" stroke="#4ade80" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M40,30 Q28,24 26,14 Q35,12 40,30Z" fill="rgba(34,197,94,0.9)"/>
+    <path d="M40,22 Q52,16 55,6 Q46,5 40,22Z" fill="rgba(22,163,74,0.85)"/>
+    <path d="M39,13 Q37,8 40,4 Q43,8 41,13Z" fill="rgba(74,222,128,0.9)"/>
+    <text x="58" y="20" font-size="11" fill="rgba(74,222,128,0.5)">↑</text>
+    <text x="12" y="26" font-size="9" fill="rgba(74,222,128,0.35)">↑</text>
+    <circle cx="27" cy="44" r="3.5" fill="rgba(251,191,36,0.5)" stroke="rgba(251,191,36,0.3)" stroke-width="1"/>
+    <circle cx="37" cy="46" r="3.5" fill="rgba(251,191,36,0.45)" stroke="rgba(251,191,36,0.3)" stroke-width="1"/>
+    <circle cx="47" cy="44" r="3.5" fill="rgba(251,191,36,0.5)" stroke="rgba(251,191,36,0.3)" stroke-width="1"/>
+  </svg>`,
+
+  env: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="30" rx="24" ry="24" fill="rgba(59,130,246,0.12)"/>
+    <path d="M40,4 L62,13 L62,30 Q62,48 40,54 Q18,48 18,30 L18,13 Z" fill="rgba(23,37,84,0.85)" stroke="rgba(59,130,246,0.5)" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M40,7 L58,15 L58,30 Q58,44 40,50" fill="none" stroke="rgba(96,165,250,0.35)" stroke-width="1" stroke-linecap="round"/>
+    <path d="M40,7 L22,15 L22,30 Q22,44 40,50" fill="none" stroke="rgba(96,165,250,0.2)" stroke-width="1" stroke-linecap="round"/>
+    <path d="M40,21 Q27,21 25,34 Q32,37 40,30 Q48,37 55,34 Q53,21 40,21Z" fill="rgba(34,197,94,0.9)"/>
+    <path d="M40,21 L40,38" stroke="rgba(22,163,74,0.8)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M40,20 Q36,16 34,11 Q38,10 40,15" fill="rgba(34,197,94,0.5)"/>
+  </svg>`,
+
+  sav: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="30" rx="26" ry="24" fill="rgba(251,191,36,0.1)"/>
+    <line x1="40" y1="3" x2="40" y2="0" stroke="rgba(251,191,36,0.7)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="57" y1="9" x2="60" y2="6" stroke="rgba(251,191,36,0.6)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="64" y1="27" x2="68" y2="27" stroke="rgba(251,191,36,0.5)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="23" y1="9" x2="20" y2="6" stroke="rgba(251,191,36,0.6)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="16" y1="27" x2="12" y2="27" stroke="rgba(251,191,36,0.5)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M27,27 Q27,12 40,10 Q53,12 53,27 Q53,35 48,40 L32,40 Q27,35 27,27Z" fill="rgba(251,191,36,0.18)" stroke="rgba(251,191,36,0.6)" stroke-width="1.5"/>
+    <path d="M29,27 Q29,14 40,12 Q51,14 51,27" fill="none" stroke="rgba(253,230,138,0.5)" stroke-width="1"/>
+    <path d="M40,38 Q31,30 32,22 Q37,20 40,30 Q43,20 48,22 Q49,30 40,38Z" fill="rgba(34,197,94,0.85)"/>
+    <path d="M40,38 L40,21" stroke="rgba(22,163,74,0.7)" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+    <rect x="35" y="40" width="10" height="3" fill="#777" rx="1"/>
+    <rect x="34" y="43" width="12" height="3" fill="#555" rx="1"/>
+    <rect x="36" y="46" width="8" height="2" fill="#444" rx="1"/>
+  </svg>`,
+
+  elec: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="32" rx="26" ry="22" fill="rgba(251,191,36,0.15)"/>
+    <rect x="26" y="26" width="28" height="22" rx="5" fill="#1f2937" stroke="rgba(75,85,99,0.8)" stroke-width="1.5"/>
+    <rect x="30" y="21" width="20" height="7" rx="2.5" fill="#374151"/>
+    <rect x="33" y="14" width="5" height="9" rx="2" fill="#9ca3af"/>
+    <rect x="42" y="14" width="5" height="9" rx="2" fill="#9ca3af"/>
+    <path d="M40" y="48" Q40,53 40,56" stroke="#2d3748" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <path d="M40,48 Q40,53 40,56" stroke="#374151" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <path d="M45,24 L37,35 L42,35 L36,46 L48,32 L43,32 Z" fill="rgba(251,191,36,0.95)"/>
+    <path d="M45,24 L37,35 L42,35 L36,46 L48,32 L43,32 Z" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.5"/>
+    <circle cx="27" cy="36" r="2" fill="rgba(74,222,128,0.7)"/>
+  </svg>`,
+
+  ppa: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="22" rx="28" ry="22" fill="rgba(251,191,36,0.15)"/>
+    <line x1="40" y1="3" x2="40" y2="0" stroke="rgba(251,191,36,0.8)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="57" y1="8" x2="60" y2="5" stroke="rgba(251,191,36,0.7)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="65" y1="22" x2="69" y2="22" stroke="rgba(251,191,36,0.7)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="23" y1="8" x2="20" y2="5" stroke="rgba(251,191,36,0.7)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="15" y1="22" x2="11" y2="22" stroke="rgba(251,191,36,0.7)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="57" y1="36" x2="61" y2="39" stroke="rgba(251,191,36,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="23" y1="36" x2="19" y2="39" stroke="rgba(251,191,36,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="40" cy="22" r="11" fill="rgba(251,191,36,0.9)"/>
+    <circle cx="40" cy="22" r="7" fill="rgba(253,230,138,0.95)"/>
+    <rect x="6" y="40" width="16" height="13" fill="rgba(30,58,138,0.85)" rx="1.5" stroke="rgba(59,130,246,0.5)" stroke-width="0.8"/>
+    <line x1="14" y1="40" x2="14" y2="53" stroke="rgba(96,165,250,0.5)" stroke-width="0.7"/>
+    <line x1="6" y1="46" x2="22" y2="46" stroke="rgba(96,165,250,0.5)" stroke-width="0.7"/>
+    <rect x="25" y="40" width="16" height="13" fill="rgba(30,58,138,0.85)" rx="1.5" stroke="rgba(59,130,246,0.5)" stroke-width="0.8"/>
+    <line x1="33" y1="40" x2="33" y2="53" stroke="rgba(96,165,250,0.5)" stroke-width="0.7"/>
+    <line x1="25" y1="46" x2="41" y2="46" stroke="rgba(96,165,250,0.5)" stroke-width="0.7"/>
+    <rect x="44" y="40" width="16" height="13" fill="rgba(30,58,138,0.85)" rx="1.5" stroke="rgba(59,130,246,0.5)" stroke-width="0.8"/>
+    <line x1="52" y1="40" x2="52" y2="53" stroke="rgba(96,165,250,0.5)" stroke-width="0.7"/>
+    <line x1="44" y1="46" x2="60" y2="46" stroke="rgba(96,165,250,0.5)" stroke-width="0.7"/>
+    <rect x="63" y="40" width="11" height="13" fill="rgba(30,58,138,0.85)" rx="1.5" stroke="rgba(59,130,246,0.5)" stroke-width="0.8"/>
+    <line x1="63" y1="46" x2="74" y2="46" stroke="rgba(96,165,250,0.5)" stroke-width="0.7"/>
+  </svg>`,
+
+  batt: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="38" cy="30" rx="32" ry="20" fill="rgba(34,197,94,0.1)"/>
+    <rect x="8" y="18" width="58" height="26" rx="6" fill="#111" stroke="rgba(55,65,81,0.9)" stroke-width="2"/>
+    <rect x="66" y="23" width="7" height="16" rx="2.5" fill="#374151"/>
+    <rect x="12" y="22" width="32" height="18" rx="4" fill="rgba(22,163,74,0.85)"/>
+    <rect x="12" y="22" width="32" height="18" rx="4" fill="none" stroke="rgba(74,222,128,0.3)" stroke-width="1"/>
+    <rect x="44" y="22" width="18" height="18" rx="4" fill="rgba(30,30,30,0.9)"/>
+    <line x1="26" y1="22" x2="26" y2="40" stroke="rgba(15,118,55,0.6)" stroke-width="1"/>
+    <line x1="38" y1="22" x2="38" y2="40" stroke="rgba(15,118,55,0.6)" stroke-width="1"/>
+    <path d="M45,14 L37,28 L42,28 L37,42 L49,26 L43,26 Z" fill="rgba(251,191,36,0.95)"/>
+    <text x="14" y="35" font-size="9" fill="rgba(255,255,255,0.8)" font-weight="bold">75%</text>
+  </svg>`,
+
+  circ: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="28" rx="27" ry="25" fill="rgba(34,197,94,0.1)"/>
+    <path d="M40,8 A22,22 0 0,1 62,35" stroke="rgba(74,222,128,0.9)" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+    <polygon points="64,31 63,39 57,34" fill="rgba(74,222,128,0.9)"/>
+    <path d="M62,35 A22,22 0 0,1 21,36" stroke="rgba(34,197,94,0.8)" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+    <polygon points="18,41 23,35 25,43" fill="rgba(34,197,94,0.8)"/>
+    <path d="M21,36 A22,22 0 0,1 40,8" stroke="rgba(22,163,74,0.7)" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+    <polygon points="36,5 44,5 40,12" fill="rgba(22,163,74,0.7)"/>
+    <circle cx="40" cy="28" r="8" fill="rgba(5,46,22,0.9)"/>
+    <text x="35.5" y="32.5" font-size="10" fill="rgba(74,222,128,0.9)">♻</text>
+  </svg>`,
+
+  lc: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="30" rx="26" ry="24" fill="rgba(34,197,94,0.1)"/>
+    <polygon points="40,5 61,21 53,51 27,51 19,21" fill="rgba(5,46,22,0.9)" stroke="rgba(74,222,128,0.6)" stroke-width="1.5" stroke-linejoin="round"/>
+    <polygon points="40,5 61,21 40,21" fill="rgba(22,163,74,0.6)"/>
+    <polygon points="40,5 19,21 40,21" fill="rgba(20,83,45,0.7)"/>
+    <polygon points="61,21 53,51 40,21" fill="rgba(21,128,61,0.5)"/>
+    <polygon points="19,21 27,51 40,21" fill="rgba(22,101,52,0.5)"/>
+    <polygon points="40,21 53,51 27,51" fill="rgba(5,46,22,0.85)"/>
+    <path d="M40,6 L56,19" stroke="rgba(134,239,172,0.5)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M40,6 L30,14" stroke="rgba(134,239,172,0.3)" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="28" y="39" font-size="8.5" fill="rgba(74,222,128,0.85)" font-weight="bold">CO₂↓</text>
+  </svg>`,
+
+  sup: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="28" rx="30" ry="26" fill="rgba(34,197,94,0.08)"/>
+    <line x1="40" y1="28" x2="15" y2="12" stroke="rgba(74,222,128,0.5)" stroke-width="1.5"/>
+    <line x1="40" y1="28" x2="65" y2="12" stroke="rgba(74,222,128,0.5)" stroke-width="1.5"/>
+    <line x1="40" y1="28" x2="13" y2="46" stroke="rgba(74,222,128,0.5)" stroke-width="1.5"/>
+    <line x1="40" y1="28" x2="67" y2="46" stroke="rgba(74,222,128,0.5)" stroke-width="1.5"/>
+    <line x1="40" y1="28" x2="40" y2="5" stroke="rgba(74,222,128,0.45)" stroke-width="1.5"/>
+    <line x1="15" y1="12" x2="65" y2="12" stroke="rgba(34,197,94,0.3)" stroke-width="1"/>
+    <line x1="13" y1="46" x2="67" y2="46" stroke="rgba(34,197,94,0.3)" stroke-width="1"/>
+    <line x1="15" y1="12" x2="13" y2="46" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+    <line x1="65" y1="12" x2="67" y2="46" stroke="rgba(34,197,94,0.2)" stroke-width="1"/>
+    <circle cx="40" cy="28" r="8" fill="rgba(22,101,52,0.9)" stroke="rgba(74,222,128,0.8)" stroke-width="2"/>
+    <circle cx="40" cy="28" r="3.5" fill="rgba(74,222,128,0.9)"/>
+    <circle cx="15" cy="12" r="5.5" fill="rgba(5,46,22,0.9)" stroke="rgba(34,197,94,0.7)" stroke-width="1.5"/>
+    <circle cx="65" cy="12" r="5.5" fill="rgba(5,46,22,0.9)" stroke="rgba(34,197,94,0.7)" stroke-width="1.5"/>
+    <circle cx="13" cy="46" r="5.5" fill="rgba(5,46,22,0.9)" stroke="rgba(34,197,94,0.7)" stroke-width="1.5"/>
+    <circle cx="67" cy="46" r="5.5" fill="rgba(5,46,22,0.9)" stroke="rgba(34,197,94,0.7)" stroke-width="1.5"/>
+    <circle cx="40" cy="5" r="4.5" fill="rgba(5,46,22,0.9)" stroke="rgba(34,197,94,0.7)" stroke-width="1.5"/>
+  </svg>`,
+
+  meth: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="28" rx="28" ry="26" fill="rgba(125,211,252,0.1)"/>
+    <line x1="40" y1="2" x2="40" y2="54" stroke="rgba(125,211,252,0.8)" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="13" y1="14" x2="67" y2="42" stroke="rgba(125,211,252,0.8)" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="13" y1="42" x2="67" y2="14" stroke="rgba(125,211,252,0.8)" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="29" y1="7" x2="24" y2="2" stroke="rgba(186,230,253,0.7)" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="29" y1="7" x2="34" y2="2" stroke="rgba(186,230,253,0.7)" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="51" y1="49" x2="46" y2="54" stroke="rgba(186,230,253,0.7)" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="51" y1="49" x2="56" y2="54" stroke="rgba(186,230,253,0.7)" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="21" y1="24" x2="16" y2="19" stroke="rgba(186,230,253,0.7)" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="21" y1="24" x2="16" y2="29" stroke="rgba(186,230,253,0.7)" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="59" y1="32" x2="64" y2="27" stroke="rgba(186,230,253,0.7)" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="59" y1="32" x2="64" y2="37" stroke="rgba(186,230,253,0.7)" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="40" cy="28" r="7" fill="rgba(8,51,68,0.95)" stroke="rgba(125,211,252,0.8)" stroke-width="2"/>
+    <circle cx="40" cy="28" r="3.5" fill="rgba(56,189,248,0.9)"/>
+  </svg>`,
+
+  tec: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="10" cy="8" r="1.2" fill="rgba(255,255,255,0.8)"/>
+    <circle cx="70" cy="12" r="1" fill="rgba(255,255,255,0.7)"/>
+    <circle cx="18" cy="22" r="0.8" fill="rgba(255,255,255,0.6)"/>
+    <circle cx="66" cy="28" r="1" fill="rgba(255,255,255,0.7)"/>
+    <circle cx="72" cy="6" r="0.8" fill="rgba(255,255,255,0.5)"/>
+    <circle cx="8" cy="40" r="1" fill="rgba(255,255,255,0.5)"/>
+    <circle cx="75" cy="42" r="0.8" fill="rgba(255,255,255,0.4)"/>
+    <ellipse cx="40" cy="48" rx="12" ry="7" fill="rgba(249,115,22,0.4)"/>
+    <path d="M34,44 Q37,53 40,56 Q43,53 46,44" fill="rgba(249,115,22,0.85)"/>
+    <path d="M36,44 Q38.5,51 40,54 Q41.5,51 44,44" fill="rgba(251,191,36,0.9)"/>
+    <path d="M39,8 Q50,16 52,32 L52,44 L28,44 L28,32 Q30,16 40,4 Q40.5,6 39,8Z" fill="rgba(226,232,240,0.95)"/>
+    <path d="M40,6 Q45,12 47,22 Q44,20 40,20" fill="rgba(255,255,255,0.2)"/>
+    <circle cx="40" cy="30" r="7.5" fill="rgba(14,165,233,0.75)" stroke="rgba(186,230,253,0.7)" stroke-width="1.5"/>
+    <circle cx="38" cy="28" r="2.5" fill="rgba(255,255,255,0.35)"/>
+    <path d="M28,42 L19,54 L28,49 Z" fill="rgba(148,163,184,0.85)"/>
+    <path d="M52,42 L61,54 L52,49 Z" fill="rgba(148,163,184,0.85)"/>
+  </svg>`,
+
+  trd: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="30" rx="30" ry="24" fill="rgba(251,191,36,0.1)"/>
+    <rect x="37" y="14" width="6" height="36" fill="rgba(120,53,15,0.9)" rx="2"/>
+    <rect x="24" y="48" width="32" height="7" fill="rgba(101,44,11,0.9)" rx="3"/>
+    <line x1="12" y1="19" x2="68" y2="13" stroke="rgba(217,119,6,0.9)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="40" cy="16" r="4.5" fill="rgba(251,191,36,0.9)" stroke="rgba(120,53,15,0.8)" stroke-width="1.5"/>
+    <path d="M8,21 Q13,26 18,21" stroke="rgba(217,119,6,0.8)" stroke-width="1.5" fill="none"/>
+    <line x1="8" y1="21" x2="8" y2="33" stroke="rgba(217,119,6,0.7)" stroke-width="1.2"/>
+    <line x1="18" y1="21" x2="18" y2="33" stroke="rgba(217,119,6,0.7)" stroke-width="1.2"/>
+    <ellipse cx="13" cy="35" rx="9" ry="3.5" fill="rgba(101,44,11,0.8)" stroke="rgba(217,119,6,0.7)" stroke-width="1"/>
+    <text x="7" y="34" font-size="7.5" fill="rgba(253,230,138,0.9)" font-weight="bold">CO₂</text>
+    <path d="M60,15 Q65,20 70,15" stroke="rgba(217,119,6,0.8)" stroke-width="1.5" fill="none"/>
+    <line x1="60" y1="15" x2="60" y2="25" stroke="rgba(217,119,6,0.7)" stroke-width="1.2"/>
+    <line x1="70" y1="15" x2="70" y2="25" stroke="rgba(217,119,6,0.7)" stroke-width="1.2"/>
+    <ellipse cx="65" cy="27" rx="9" ry="3.5" fill="rgba(101,44,11,0.8)" stroke="rgba(217,119,6,0.7)" stroke-width="1"/>
+    <circle cx="62" cy="25" r="3.5" fill="rgba(251,191,36,0.9)" stroke="rgba(120,53,15,0.6)" stroke-width="0.7"/>
+    <circle cx="68" cy="24" r="3.5" fill="rgba(251,191,36,0.9)" stroke="rgba(120,53,15,0.6)" stroke-width="0.7"/>
+  </svg>`,
+
+  hp: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="28" width="40" height="24" fill="#1a2f1a" rx="2"/>
+    <polygon points="14,28 40,10 66,28" fill="#0d1f0d" stroke="rgba(74,222,128,0.4)" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect x="28" y="33" width="16" height="12" fill="#0a1f0a" rx="2" stroke="rgba(74,222,128,0.6)" stroke-width="1"/>
+    <path d="M50,45 Q55,40 52,34" stroke="rgba(251,191,36,0.8)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M56,43 Q61,38 58,32" stroke="rgba(251,191,36,0.7)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M34,34 L30,41 L34,41 L30,48 L38,40 L34,40 Z" fill="rgba(251,191,36,0.9)"/>
+  </svg>`,
+
+  ccs: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="26" width="36" height="26" fill="#0a1a2a" rx="2"/>
+    <rect x="18" y="12" width="8" height="16" fill="#0d1f2d" rx="2"/>
+    <circle cx="22" cy="9" r="5" fill="rgba(90,90,90,0.4)"/>
+    <circle cx="29" cy="7" r="4" fill="rgba(70,70,70,0.4)"/>
+    <path d="M50,8 L50,46" stroke="rgba(34,211,238,0.8)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3,2"/>
+    <polygon points="46,44 54,44 50,52" fill="rgba(34,211,238,0.85)"/>
+    <ellipse cx="50" cy="54" rx="10" ry="3" fill="rgba(34,211,238,0.25)"/>
+    <text x="55" y="22" font-size="7" fill="rgba(34,211,238,0.8)" font-weight="bold">CO₂</text>
+    <line x1="53" y1="24" x2="53" y2="34" stroke="rgba(34,211,238,0.6)" stroke-width="1.2" stroke-linecap="round"/>
+    <polygon points="50,34 56,34 53,39" fill="rgba(34,211,238,0.6)"/>
+  </svg>`,
+
+  gh: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="62" cy="11" r="6" fill="rgba(251,191,36,0.85)"/>
+    <line x1="62" y1="2" x2="62" y2="5" stroke="rgba(251,191,36,0.7)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="68" y1="5" x2="71" y2="3" stroke="rgba(251,191,36,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+    <rect x="22" y="20" width="28" height="28" fill="#071a0e" rx="3" stroke="rgba(74,222,128,0.5)" stroke-width="1.5"/>
+    <rect x="25" y="30" width="22" height="16" fill="rgba(59,130,246,0.45)" rx="2"/>
+    <circle cx="33" cy="28" r="2" fill="rgba(74,222,128,0.85)"/>
+    <circle cx="42" cy="26" r="2" fill="rgba(74,222,128,0.85)"/>
+    <circle cx="37" cy="22" r="2" fill="rgba(74,222,128,0.6)"/>
+    <text x="29" y="43" font-size="10" fill="rgba(74,222,128,0.9)" font-weight="bold">H₂</text>
+  </svg>`,
+
+  cp: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16,8 L56,8 Q63,8 63,15 L63,42 Q63,49 56,49 L16,49 Q9,49 9,42 L9,15 Q9,8 16,8Z" fill="#1a1a08" stroke="rgba(251,191,36,0.55)" stroke-width="1.5"/>
+    <circle cx="14" cy="16" r="3" fill="rgba(251,191,36,0.5)"/>
+    <text x="18" y="25" font-size="10" fill="rgba(248,113,113,0.9)" font-weight="bold">CO₂</text>
+    <text x="16" y="38" font-size="9" fill="rgba(251,191,36,0.9)" font-weight="bold">¥/t-CO₂</text>
+    <text x="66" y="34" font-size="18" fill="rgba(74,222,128,0.75)">↓</text>
+  </svg>`,
+
+  ctaxp: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <rect x="14" y="4" width="38" height="48" rx="3" fill="rgba(30,20,5,0.9)" stroke="rgba(217,119,6,0.5)" stroke-width="1.5"/>
+    <rect x="14" y="4" width="38" height="11" rx="3" fill="rgba(217,119,6,0.4)"/>
+    <text x="18" y="12.5" font-size="5.5" fill="rgba(255,255,255,0.9)" font-weight="bold">炭素税法</text>
+    <line x1="20" y1="22" x2="44" y2="22" stroke="rgba(146,64,14,0.6)" stroke-width="1"/>
+    <line x1="20" y1="29" x2="44" y2="29" stroke="rgba(146,64,14,0.6)" stroke-width="1"/>
+    <text x="20" y="43" font-size="9" fill="rgba(251,191,36,0.9)" font-weight="bold">CO₂↓</text>
+    <circle cx="63" cy="20" r="6" fill="rgba(251,191,36,0.8)" stroke="rgba(146,64,14,0.5)" stroke-width="1"/>
+    <circle cx="63" cy="34" r="6" fill="rgba(251,191,36,0.75)" stroke="rgba(146,64,14,0.5)" stroke-width="1"/>
+    <text x="59.5" y="23" font-size="7.5" fill="rgba(120,53,15,0.9)">¥</text>
+    <text x="59.5" y="37" font-size="7.5" fill="rgba(120,53,15,0.9)">¥</text>
+  </svg>`,
+
+  esg: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="26" width="16" height="26" fill="rgba(22,163,74,0.8)" rx="2"/>
+    <text x="11" y="22" font-size="9" fill="rgba(74,222,128,0.9)" font-weight="bold">E</text>
+    <rect x="32" y="18" width="16" height="34" fill="rgba(59,130,246,0.8)" rx="2"/>
+    <text x="35" y="14" font-size="9" fill="rgba(147,197,253,0.9)" font-weight="bold">S</text>
+    <rect x="56" y="10" width="16" height="42" fill="rgba(168,85,247,0.8)" rx="2"/>
+    <text x="59" y="6" font-size="9" fill="rgba(216,180,254,0.9)" font-weight="bold">G</text>
+    <rect x="6" y="52" width="68" height="2" fill="rgba(255,255,255,0.18)" rx="1"/>
+  </svg>`
+};
+
+const EARTH_ART = {
+  collapse: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="28" r="28" fill="rgba(180,0,0,0.08)"/>
+    <circle cx="40" cy="28" r="20" fill="rgba(10,5,5,0.92)" stroke="rgba(200,30,30,0.7)" stroke-width="1.5"/>
+    <path d="M32,12 Q39,8 44,14 Q47,20 42,24 Q38,26 34,20 Q30,18 32,12Z" fill="rgba(20,60,20,0.5)" stroke="rgba(100,180,100,0.3)" stroke-width="0.5"/>
+    <path d="M44,18 Q50,16 53,23 Q51,30 47,31 Q43,28 43,23Z" fill="rgba(20,80,20,0.4)"/>
+    <path d="M27,30 Q32,28 36,34 Q34,40 28,40 Q24,36 27,30Z" fill="rgba(20,70,20,0.45)"/>
+    <path d="M40,8 L36,19 L28,24 L22,32 L27,40 L24,50" stroke="rgba(255,80,0,0.9)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M54,14 L46,24 L51,30 L44,40 L48,50" stroke="rgba(255,60,0,0.8)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M22,18 L31,26 L26,34 L30,44" stroke="rgba(255,100,0,0.7)" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+    <path d="M36,19 L34,22 Q37,23 36,25 Q39,22 40,24 Q41,20 40,19Z" fill="rgba(255,160,0,0.85)"/>
+    <path d="M46,24 L44,27 Q47,28 46,30 Q49,27 50,29 Q51,25 50,24Z" fill="rgba(255,120,0,0.75)"/>
+    <line x1="40" y1="8" x2="38" y2="3" stroke="rgba(255,220,0,0.9)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="40" y1="8" x2="43" y2="3" stroke="rgba(255,180,0,0.8)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="54" y1="14" x2="59" y2="10" stroke="rgba(255,150,0,0.8)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="22" y1="18" x2="17" y2="14" stroke="rgba(255,130,0,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="40" cy="28" r="20" fill="none" stroke="rgba(255,50,0,0.2)" stroke-width="0.8" stroke-dasharray="2,4"/>
+    <circle cx="8" cy="6" r="0.8" fill="rgba(255,80,0,0.5)"/>
+    <circle cx="72" cy="8" r="0.6" fill="rgba(255,60,0,0.4)"/>
+    <circle cx="6" cy="44" r="0.7" fill="rgba(200,40,0,0.4)"/>
+  </svg>`,
+
+  warm: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="40" cy="26" rx="36" ry="30" fill="rgba(249,115,22,0.15)"/>
+    <line x1="40" y1="2" x2="40" y2="7" stroke="rgba(251,191,36,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="58" y1="7" x2="55" y2="11" stroke="rgba(251,191,36,0.8)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="65" y1="23" x2="60" y2="23" stroke="rgba(251,191,36,0.8)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="22" y1="7" x2="25" y2="11" stroke="rgba(251,191,36,0.8)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="15" y1="23" x2="20" y2="23" stroke="rgba(251,191,36,0.8)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="58" y1="39" x2="54" y2="36" stroke="rgba(249,115,22,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="22" y1="39" x2="26" y2="36" stroke="rgba(249,115,22,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="40" cy="23" r="13.5" fill="rgba(251,191,36,0.9)"/>
+    <circle cx="40" cy="23" r="9" fill="rgba(253,230,138,0.95)"/>
+    <path d="M8,45 Q18,40 28,45 Q38,50 48,45 Q58,40 72,45" stroke="rgba(249,115,22,0.7)" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M12,52 Q22,48 32,52 Q42,56 52,52 Q62,48 70,52" stroke="rgba(239,68,68,0.5)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </svg>`,
+
+  recess: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="6" width="64" height="42" rx="3" fill="rgba(0,0,0,0.3)" stroke="rgba(55,65,81,0.8)" stroke-width="1"/>
+    <line x1="8" y1="18" x2="72" y2="18" stroke="rgba(55,65,81,0.5)" stroke-width="0.7" stroke-dasharray="2,3"/>
+    <line x1="8" y1="28" x2="72" y2="28" stroke="rgba(55,65,81,0.5)" stroke-width="0.7" stroke-dasharray="2,3"/>
+    <line x1="8" y1="38" x2="72" y2="38" stroke="rgba(55,65,81,0.5)" stroke-width="0.7" stroke-dasharray="2,3"/>
+    <path d="M12,12 L25,17 L38,22 L51,31 L64,40 L70,42 L70,48 L12,48 Z" fill="rgba(239,68,68,0.15)"/>
+    <polyline points="12,12 25,17 38,22 51,31 64,40 70,42" stroke="rgba(239,68,68,0.9)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="12" cy="12" r="3" fill="rgba(239,68,68,0.9)"/>
+    <circle cx="38" cy="22" r="3" fill="rgba(239,68,68,0.9)"/>
+    <circle cx="64" cy="40" r="3" fill="rgba(239,68,68,0.9)"/>
+    <circle cx="70" cy="42" r="3" fill="rgba(248,113,113,0.9)"/>
+    <path d="M56,48 L63,48 L59.5,54 Z" fill="rgba(239,68,68,0.9)"/>
+    <text x="10" y="54" font-size="6.5" fill="rgba(113,113,122,0.8)">経済</text>
+  </svg>`,
+
+  storm: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="27" cy="24" r="11" fill="rgba(55,65,81,0.9)"/>
+    <circle cx="40" cy="18" r="14" fill="rgba(75,85,99,0.95)"/>
+    <circle cx="55" cy="22" r="11" fill="rgba(55,65,81,0.9)"/>
+    <rect x="16" y="24" width="50" height="14" fill="rgba(75,85,99,0.95)"/>
+    <circle cx="38" cy="16" r="6" fill="rgba(107,114,128,0.5)"/>
+    <circle cx="51" cy="20" r="5" fill="rgba(107,114,128,0.4)"/>
+    <ellipse cx="46" cy="40" rx="16" ry="12" fill="rgba(251,191,36,0.15)"/>
+    <path d="M46,36 L39,47 L43.5,47 L37,58 L52,44 L47,44 Z" fill="rgba(251,191,36,0.95)"/>
+    <path d="M46,36 L39,47 L43.5,47 L37,58 L52,44 L47,44 Z" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.5"/>
+    <ellipse cx="22" cy="45" rx="2" ry="4" fill="rgba(147,197,253,0.7)"/>
+    <ellipse cx="30" cy="49" rx="2" ry="4" fill="rgba(147,197,253,0.6)"/>
+    <ellipse cx="63" cy="44" rx="2" ry="4" fill="rgba(147,197,253,0.7)"/>
+    <ellipse cx="70" cy="48" rx="2" ry="4" fill="rgba(147,197,253,0.6)"/>
+  </svg>`,
+
+  tax: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <rect x="14" y="5" width="40" height="48" rx="3" fill="rgba(30,41,59,0.9)" stroke="rgba(51,65,85,0.8)" stroke-width="1.5"/>
+    <rect x="14" y="5" width="40" height="12" rx="3" fill="rgba(220,38,38,0.75)"/>
+    <text x="19" y="14" font-size="6.5" fill="rgba(255,255,255,0.9)" font-weight="bold">CARBON TAX</text>
+    <line x1="20" y1="24" x2="46" y2="24" stroke="rgba(71,85,105,0.8)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="20" y1="31" x2="46" y2="31" stroke="rgba(71,85,105,0.8)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="20" y1="38" x2="38" y2="38" stroke="rgba(71,85,105,0.8)" stroke-width="1.5" stroke-linecap="round"/>
+    <text x="19" y="48" font-size="9" fill="rgba(248,113,113,0.9)" font-weight="bold">CO₂ +3</text>
+    <circle cx="55" cy="38" r="12" fill="none" stroke="rgba(239,68,68,0.8)" stroke-width="2.5"/>
+    <text x="48" y="43" font-size="8.5" fill="rgba(239,68,68,0.9)" font-weight="bold">課税</text>
+    <circle cx="68" cy="12" r="6" fill="rgba(251,191,36,0.85)" stroke="rgba(146,64,14,0.6)" stroke-width="1"/>
+    <circle cx="68" cy="22" r="6" fill="rgba(251,191,36,0.85)" stroke="rgba(146,64,14,0.6)" stroke-width="1"/>
+    <text x="65.5" y="15" font-size="6.5" fill="rgba(120,53,15,0.9)">¥</text>
+    <text x="65.5" y="25" font-size="6.5" fill="rgba(120,53,15,0.9)">¥</text>
+  </svg>`,
+
+  war: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="40" cy="28" r="26" fill="rgba(251,191,36,0.12)"/>
+    <polygon points="40,4 43,20 52,6 44,22 62,12 46,24 66,20 48,28 66,36 46,32 60,44 43,32 40,52 37,32 20,44 34,32 14,36 32,28 14,20 34,24 18,12 36,22 28,6 37,20" fill="rgba(251,191,36,0.65)"/>
+    <line x1="20" y1="10" x2="60" y2="46" stroke="rgba(226,232,240,0.95)" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="20" y1="10" x2="27" y2="17" stroke="rgba(148,163,184,0.9)" stroke-width="7" stroke-linecap="round"/>
+    <line x1="60" y1="46" x2="53" y2="39" stroke="rgba(148,163,184,0.9)" stroke-width="7" stroke-linecap="round"/>
+    <line x1="60" y1="10" x2="20" y2="46" stroke="rgba(226,232,240,0.95)" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="60" y1="10" x2="53" y2="17" stroke="rgba(148,163,184,0.9)" stroke-width="7" stroke-linecap="round"/>
+    <line x1="20" y1="46" x2="27" y2="39" stroke="rgba(148,163,184,0.9)" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="40" cy="28" r="6" fill="rgba(255,255,255,0.75)"/>
+    <circle cx="40" cy="28" r="3" fill="rgba(251,191,36,0.9)"/>
+  </svg>`,
+
+  safe: `<svg viewBox="0 0 80 56" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="56" fill="rgba(56,189,248,0.1)"/>
+    <ellipse cx="15" cy="16" rx="9" ry="5" fill="rgba(255,255,255,0.2)"/>
+    <ellipse cx="26" cy="12" rx="7" ry="4" fill="rgba(255,255,255,0.18)"/>
+    <ellipse cx="60" cy="11" rx="11" ry="6" fill="rgba(255,255,255,0.22)"/>
+    <ellipse cx="71" cy="14" rx="7" ry="4" fill="rgba(255,255,255,0.15)"/>
+    <circle cx="40" cy="20" r="8" fill="rgba(251,191,36,0.8)"/>
+    <line x1="40" y1="8" x2="40" y2="5" stroke="rgba(251,191,36,0.7)" stroke-width="2" stroke-linecap="round"/>
+    <line x1="50" y1="11" x2="52" y2="9" stroke="rgba(251,191,36,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="30" y1="11" x2="28" y2="9" stroke="rgba(251,191,36,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M0,38 Q20,34 40,36 Q60,39 80,35 L80,56 L0,56Z" fill="rgba(22,163,74,0.2)"/>
+    <polyline points="12,50 30,49 48,49 66,50" stroke="rgba(74,222,128,0.8)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`
+};
+
+/* ─── Card Data ─── */
+const C={
+  coal: {n:'石炭経済',        ec:4,  co:5,  cls:'c-red',    cat:'従来エネルギー', sub:'',               art:'coal',  desc:'石炭を燃やして電力・熱を生み出す。経済を最も強力に支えるが、CO₂排出量も最大。多くの国のエネルギー基盤だが温暖化の主因。'},
+  gas:  {n:'ガス経済',        ec:3,  co:3,  cls:'c-red',    cat:'従来エネルギー', sub:'',               art:'gas',   desc:'天然ガスによる発電・熱供給。石炭より排出は少ないが、まだCO₂を出す。脱石炭への「橋渡し燃料」として世界中で使われている。'},
+  ren:  {n:'再エネ経済',      ec:2,  co:1,  cls:'c-red',    cat:'従来エネルギー', sub:'',               art:'ren',   desc:'風力・水力などの再生可能エネルギーで経済活動を行う。低排出だが導入に大きな初期投資が必要な段階。'},
+  grn:  {n:'グリーン投資',    ec:-2, co:-3, cls:'c-blue',   cat:'削減投資',       sub:'',               art:'grn',   desc:'環境インフラへの大規模投資。今期は経済が圧迫されるが、CO₂を大きく削減できる。脱炭素社会への移行に不可欠な「先行投資」。'},
+  env:  {n:'環境対策',        ec:-1, co:-2, cls:'c-blue',   cat:'削減投資',       sub:'',               art:'env',   desc:'排出削減のための設備投資・規制対応。コストはかかるが確実にCO₂を下げる。企業や政府が行う直接的な環境保護施策。'},
+  sav:  {n:'省エネ',          ec:1,  co:-2, cls:'c-blue',   cat:'削減投資',       sub:'効率化',         art:'sav',   desc:'エネルギー効率の改善で経済を維持しながらCO₂を削減。断熱・LED照明・省エネ機器などが該当。費用対効果が高い施策。'},
+  elec: {n:'電化',            ec:0,  co:-3, cls:'c-green',  cat:'トランジション', sub:'',               art:'elec',  desc:'熱・輸送などを電力に置き換える。再生可能エネルギーと組み合わせると最強の脱炭素手段。EV・電気炉などが例。'},
+  ppa:  {n:'再エネPPA',       ec:1,  co:-1, cls:'c-green',  cat:'トランジション', sub:'',               art:'ppa',   desc:'再生可能エネルギーの長期電力購入契約（Power Purchase Agreement）。安定した低コストのクリーン電力を調達できる。'},
+  batt: {n:'蓄電・DR',        ec:1,  co:-1, cls:'c-green',  cat:'トランジション', sub:'',               art:'batt',  desc:'電力を蓄えて需要を調整する技術（DR＝デマンドレスポンス）。再エネの変動を吸収し、電力システムを安定化させる。'},
+  circ: {n:'サーキュラー',    ec:2,  co:-1, cls:'c-green',  cat:'トランジション', sub:'',               art:'circ',  desc:'廃棄物をゼロにする循環型経済。製品・素材を再利用して資源効率を高め、CO₂排出も削減する「作って→使って→戻す」仕組み。'},
+  lc:   {n:'低炭素素材',      ec:1,  co:-2, cls:'c-green',  cat:'トランジション', sub:'',               art:'lc',    desc:'グリーン鉄鋼・低炭素コンクリートなど、製造時にCO₂をほとんど出さない素材を採用。製品ライフサイクル全体の排出を削減。'},
+  sup:  {n:'サプライヤー連携', ec:2, co:-2, cls:'c-green',  cat:'トランジション', sub:'',               art:'sup',   desc:'仕入れ先と協力してサプライチェーン全体のCO₂を削減。自社だけでなくScope3（取引先排出分）まで対策する最先端の取り組み。'},
+  meth: {n:'メタン対策',      ec:1,  co:-2, cls:'c-green',  cat:'トランジション', sub:'冷媒含む',        art:'meth',  desc:'メタンや冷媒ガスの漏洩を防ぐ施策。これらはCO₂の数十〜数千倍の温暖化効果を持つ。見落とされがちだが削減インパクトが大きい。'},
+  tec:  {n:'技術革新',        ec:1,  co:0,  cls:'c-cyan',   cat:'戦略',           sub:'次ラウンド2枚引く',art:'tec',  desc:'次世代の脱炭素技術への投資。直接効果は小さいが翌ラウンドに追加1枚引ける。水素・CCS・核融合など将来技術を指す。'},
+  trd:  {n:'排出権取引',      ec:1,  co:2,  cls:'c-yellow', cat:'戦略',           sub:'他1人にCO₂+2',   art:'trd',   desc:'炭素市場で排出枠を売買する制度。自分は利益を得るが、CO₂の負担を他のプレイヤーへ移転する。実際の企業戦略でもよく使われる。'},
+  hp:   {n:'ヒートポンプ化',  ec:1,  co:-2, cls:'c-green',  cat:'トランジション', sub:'',               art:'hp',    desc:'化石燃料ボイラーを電気式ヒートポンプへ転換。少ない電力で大量の熱を生み出す高効率技術で、建物・産業の脱炭素化に不可欠。'},
+  ccs:  {n:'CCS/CCUS',        ec:-1, co:-4, cls:'c-cyan',   cat:'トランジション', sub:'CO₂地中貯留',    art:'ccs',   desc:'排出されたCO₂を回収し地中深くに貯留・利用する技術（Carbon Capture, Utilization and Storage）。削減困難な産業の切り札だがコストが高い。'},
+  gh:   {n:'グリーン水素',    ec:1,  co:-2, cls:'c-green',  cat:'トランジション', sub:'再エネ由来',      art:'gh',    desc:'再エネ電力で水を電気分解して製造する水素。燃焼してもCO₂を出さず、鉄鋼・化学産業など脱炭素が難しい分野の次世代エネルギー。'},
+  cp:   {n:'カーボンプライシング', ec:0, co:-2, cls:'c-yellow', cat:'戦略',        sub:'炭素税＋ETS',    art:'cp',    desc:'炭素排出に価格を付けることで市場メカニズムを通じて排出削減を促す政策。炭素税とETS（排出権取引制度）が代表的な手段。'},
+  ctaxp:{n:'炭素税政策',      ec:-1, co:-2, cls:'c-yellow', cat:'戦略',           sub:'直接課税',       art:'ctaxp', desc:'化石燃料の使用量に比例して直接税を課す政策。排出削減を促すシンプルな手法で、EU・カナダ・日本などが導入。'},
+  esg:  {n:'ESG投資',         ec:-1, co:-2, cls:'c-blue',   cat:'削減投資',       sub:'環境・社会・G',  art:'esg',   desc:'環境（E）・社会（S）・ガバナンス（G）を投資判断に組み込む手法。長期的なリスク管理と持続可能な企業価値向上を両立する。'},
+};
+
+const EARTH={
+  collapse:{n:'地球崩壊',desc:'全員敗北',                  cls:'e-collapse',art:'collapse'},
+  warm:   {n:'温暖化',  desc:'全員 CO₂ +2',               cls:'e-warm',   art:'warm'},
+  recess: {n:'不況',    desc:'全員 経済 −2',              cls:'e-recess', art:'recess'},
+  storm:  {n:'異常気象',desc:'全員 CO₂+1 & 経済−1',      cls:'e-storm',  art:'storm'},
+  tax:    {n:'炭素税',  desc:'CO₂最多に CO₂ +3',          cls:'e-tax',    art:'tax'},
+  war:    {n:'戦争',    desc:'経済最多 −3 ／ 経済最少 +3', cls:'e-war',    art:'war'},
+  safe:   {n:'安定',    desc:'何も起きない',               cls:'e-safe',   art:'safe'},
+};
+
+function mkDeck(){
+  const counts={coal:4,gas:6,ren:4,grn:4,env:4,sav:3,elec:2,ppa:3,batt:2,circ:2,lc:1,sup:1,meth:1,tec:6,trd:7,hp:2,ccs:1,gh:2,cp:2,ctaxp:2,esg:3};
+  const d=[];
+  for(const[k,n]of Object.entries(counts))for(let i=0;i<n;i++)d.push(k);
+  return shuf(d);
+}
+function mkEarth(){
+  const d=['collapse','safe','safe','safe','safe','safe','safe','safe','safe','safe','safe','warm','warm','recess','recess','storm','storm','tax','war'];
+  return shuf(d);
+}
+function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function mkCardHTML(cid){
+  const c=C[cid];
+  const ecStr=c.ec>=0?`+${c.ec}`:String(c.ec);
+  const coStr=c.co>0?`+${c.co}`:c.co===0?'±0':String(c.co);
+  const ecCls=c.ec>0?'stat-pos':c.ec<0?'stat-neg':'stat-zero';
+  const coCls=c.co>0?'stat-co2-pos':c.co<0?'stat-co2-neg':'stat-zero';
+  const subTag=c.sub?`<span class="header-sub-tag">${c.sub}</span>`:'';
+  return `
+    <div class="card-header">
+      <span class="c-name">${c.n}</span>
+      <div class="header-sub"><span class="header-cat">${c.cat}</span>${subTag}</div>
+    </div>
+    <div class="card-art">${ART[c.art]||''}</div>
+    <div class="card-body"><div class="card-desc">${c.desc||''}</div></div>
+    <div class="card-stats">
+      <div class="stat-block">
+        <span class="stat-label">経済</span>
+        <span class="stat-val ${ecCls}">${ecStr}</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-block">
+        <span class="stat-label">CO₂</span>
+        <span class="stat-val ${coCls}">${coStr}</span>
+      </div>
+    </div>`;
+}
+
+function mkEarthCardHTML(eid){
+  const e=EARTH[eid];
+  return `
+    <div class="card-header">
+      <span class="c-name">${e.n}</span>
+      <div class="header-sub"><span class="header-cat">地球カード</span></div>
+    </div>
+    <div class="card-art">${EARTH_ART[e.art]||''}</div>
+    <div class="card-body"><div class="card-desc earth-effect">${e.desc}</div></div>`;
+}
+
+/* ─── State ─── */
+let S,sel,tgt;
+
+function init(){
+  document.getElementById('endOv').classList.remove('show');
+  S={rnd:1,max:5,deck:mkDeck(),earth:mkEarth(),eDrawn:0,over:false,
+    lastPlayed:null,lastEarth:null,
+    ps:[
+      {n:'あなた', ec:10,co:0,h:[],human:true, dead:false,lastCard:null,bonus:false},
+      {n:'CPU-A',  ec:10,co:0,h:[],human:false,dead:false,lastCard:null,bonus:false},
+      {n:'CPU-B',  ec:10,co:0,h:[],human:false,dead:false,lastCard:null,bonus:false},
+    ],log:[]};
+  sel=-1;tgt=-1;
+  initialDeal();
+  addL('ゲーム開始！経済を維持しつつCO₂を抑えよう','');
+  draw();
+}
+
+function drawCard(){ return S.deck.length?S.deck.pop():null; }
+function initialDeal(){ for(const p of S.ps)for(let i=0;i<3;i++){const c=drawCard();if(c)p.h.push(c);} }
+function deal(){
+  for(const p of S.ps){
+    if(p.dead)continue;
+    const sz=p.bonus?2:1;p.bonus=false;
+    for(let i=0;i<sz;i++){const c=drawCard();if(c)p.h.push(c);}
+  }
+}
+
+function aiPick(p){
+  let best=0,bestS=-999;
+  p.h.forEach((cid,i)=>{
+    const c=C[cid];let s=0;
+    const nEc=p.ec+c.ec,nCo=p.co+c.co;
+    if(nEc<=0)s=-100;else if(nCo>=10)s=-100;
+    else{s=(c.ec-c.co)*2;if(nEc<=3)s+=c.ec*3;if(nCo>=7)s-=c.co*4;if(c.co<0&&c.ec>=0)s+=5;}
+    if(s>bestS){bestS=s;best=i;}
+  });
+  return best;
+}
+function aiTgt(idx){
+  let t=-1,hi=-Infinity;
+  S.ps.forEach((p,i)=>{if(i!==idx&&!p.dead){const sc=p.ec-p.co;if(sc>hi){hi=sc;t=i;}}});
+  return t;
+}
+
+function go(){
+  if(S.over||sel<0)return;
+  const human=S.ps[0];
+  const cid=human.h[sel];
+  if(cid==='trd'&&tgt<0){showTgt();return;}
+  addL(`── ラウンド ${S.rnd} ──`,'');
+  const picks=[];
+  for(let i=0;i<S.ps.length;i++){
+    const p=S.ps[i];
+    if(p.dead){picks.push(null);continue;}
+    if(p.human)picks.push({ci:sel,tgt});
+    else picks.push({ci:aiPick(p),tgt:aiTgt(i)});
+  }
+  S.lastPlayed=[];
+  for(let i=0;i<S.ps.length;i++){
+    const p=S.ps[i];
+    if(p.dead||!picks[i]){S.lastPlayed.push(null);continue;}
+    const cid=p.h[picks[i].ci];
+    const c=C[cid];
+    p.h.splice(picks[i].ci,1);
+    p.ec+=c.ec; p.co=Math.max(0,p.co+c.co);
+    p.lastCard=cid; S.lastPlayed.push(cid);
+    if(cid==='tec')p.bonus=true;
+    let msg=`${p.n}: ${c.n}（経済${c.ec>=0?'+':''}${c.ec}, CO₂${c.co>=0?'+':''}${c.co}）`;
+    if(cid==='trd'){const t=S.ps[picks[i].tgt];if(t&&!t.dead){t.co+=2;msg+=` → ${t.n}にCO₂+2`;}}
+    msg+=` → 経済${p.ec} CO₂${p.co}`;
+    addL(msg,c.co<0?'ok':'');
+  }
+  sel=-1;tgt=-1;
+  for(const p of S.ps){if(p.dead)continue;if(p.ec<=0){p.dead=true;addL(`💀 ${p.n}: 経済破綻で脱落`,'bad');}else if(p.co>=10){p.dead=true;addL(`💀 ${p.n}: 環境破綻で脱落`,'bad');}}
+  if(checkAllDead())return;
+  S.lastEarth=null;
+  if(S.earth.length>0){
+    S.eDrawn++;const e=S.earth.pop();S.lastEarth=e;
+    if(e==='collapse'){addL('💥 地球崩壊！！ 全員敗北！！！','bad');S.ps.forEach(p=>{p.dead=true;});endG('collapse');return;}
+    else if(e==='warm'){S.ps.forEach(p=>{if(!p.dead)p.co+=2;});addL('🌍 温暖化: 全員CO₂+2','ev');}
+    else if(e==='recess'){S.ps.forEach(p=>{if(!p.dead)p.ec-=2;});addL('🌍 不況: 全員 経済-2','ev');}
+    else if(e==='storm'){S.ps.forEach(p=>{if(!p.dead){p.co+=1;p.ec-=1;}});addL('🌍 異常気象: 全員 CO₂+1 & 経済-1','ev');}
+    else if(e==='tax'){let mx=-1,ts=[];S.ps.forEach((p,i)=>{if(!p.dead){if(p.co>mx){mx=p.co;ts=[i];}else if(p.co===mx)ts.push(i);}});ts.forEach(i=>S.ps[i].co+=3);addL(`🌍 炭素税: ${ts.map(i=>S.ps[i].n).join('、')}にCO₂+3`,'ev');}
+    else if(e==='war'){let mxE=-Infinity,mnE=Infinity,hiIs=[],loIs=[];S.ps.forEach((p,i)=>{if(!p.dead){if(p.ec>mxE){mxE=p.ec;hiIs=[i];}else if(p.ec===mxE)hiIs.push(i);if(p.ec<mnE){mnE=p.ec;loIs=[i];}else if(p.ec===mnE)loIs.push(i);}});hiIs.forEach(i=>S.ps[i].ec-=3);loIs.forEach(i=>S.ps[i].ec+=3);addL(`⚔️ 戦争: ${hiIs.map(i=>S.ps[i].n).join('、')}経済-3 ／ ${loIs.map(i=>S.ps[i].n).join('、')}経済+3`,'ev');}
+    for(const p of S.ps){if(p.dead)continue;if(p.ec<=0){p.dead=true;addL(`💀 ${p.n}: 経済破綻で脱落`,'bad');}else if(p.co>=10){p.dead=true;addL(`💀 ${p.n}: 環境破綻で脱落`,'bad');}}
+    if(checkAllDead())return;
+  }
+  if(S.rnd>=S.max){endG('end');return;}
+  S.rnd++;deal();draw();
+}
+
+function checkAllDead(){
+  if(S.ps.every(p=>p.dead)){addL('全員脱落 → 全員敗北','bad');endG('allDead');return true;}
+  return false;
+}
+function showTgt(){
+  const ov=document.getElementById('tgtOv'),el=document.getElementById('tgtBtns');
+  el.innerHTML='';
+  S.ps.forEach((p,i)=>{
+    if(i===0||p.dead)return;
+    const b=document.createElement('button');b.className='t-btn';
+    b.textContent=`${p.n}（経済${p.ec} CO₂${p.co}）`;
+    b.onclick=()=>{tgt=i;ov.classList.remove('show');go();};
+    el.appendChild(b);
+  });
+  ov.classList.add('show');
+}
+function endG(r){
+  S.over=true;draw();
+  const t=document.getElementById('mT'),p=document.getElementById('mP');
+  if(r==='collapse'){t.textContent='💥 地球崩壊...';t.style.color='#ff4040';p.innerHTML='地球が崩壊しました。<br>誰も生き残れませんでした。<br><br><span style="font-size:.8rem;color:#71717a">環境問題を無視した代償です。</span>';}
+  else if(r==='allDead'){t.textContent='全員敗北...';t.style.color='#f87171';p.innerHTML='全員脱落しました。';}
+  else{
+    const alive=S.ps.filter(x=>!x.dead);
+    const score=x=>x.ec-x.co;
+    const sorted=[...alive].sort((a,b)=>score(b)-score(a));
+    const w=sorted[0];
+    const scores=S.ps.map(x=>`${x.n}: 経済${x.ec} CO₂${x.co}　スコア${score(x)}${x.dead?' (脱落)':''}`).join('<br>');
+    if(w.human){t.textContent='勝利！';t.style.color='#4ade80';p.innerHTML=`スコア${score(w)}（経済${w.ec} − CO₂${w.co}）でデカップリング達成！<br><br>${scores}`;}
+    else if(alive.length>1&&score(sorted[0])===score(sorted[1])&&sorted.some(x=>x.human)){t.textContent='引き分け！';t.style.color='#fbbf24';p.innerHTML=scores;}
+    else{t.textContent='敗北...';t.style.color='#f87171';p.innerHTML=`${w.n}がスコア${score(w)}で勝利<br><br>${scores}`;}
+  }
+  document.getElementById('endOv').classList.add('show');
+}
+
+function draw(){
+  document.getElementById('rnd').textContent=S.rnd;
+  document.getElementById('dLeft').textContent=S.deck.length;
+  document.getElementById('eLeft').textContent=S.earth.length;
+
+  const row=document.getElementById('pRow');row.innerHTML='';
+  S.ps.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='p-card'+(p.human?' you':'')+(p.dead?' dead':'');
+    const ecC=p.ec<=3?'#f87171':p.ec<=6?'#fbbf24':'#4ade80';
+    const coC=p.co>=8?'#f87171':p.co>=5?'#fbbf24':'#4ade80';
+    d.innerHTML=`<div class="p-name">${p.n}${p.dead?' (脱落)':''}</div>
+      <div class="p-stats">
+        <div class="p-stat"><div class="label">経済</div><div class="val" style="color:${ecC}">${p.ec}</div></div>
+        <div class="p-stat"><div class="label">CO₂</div><div class="val" style="color:${coC}">${p.co}</div></div>
+      </div>`;
+    row.appendChild(d);
+  });
+
+  const fieldArea=document.getElementById('fieldArea');
+  const fieldRow=document.getElementById('fieldRow');
+  if(S.lastPlayed){
+    fieldArea.classList.add('visible');fieldRow.innerHTML='';
+    S.ps.forEach((p,i)=>{
+      const col=document.createElement('div');col.className='field-col';
+      const lbl=document.createElement('div');lbl.className='owner'+(p.human?' you':'');lbl.textContent=p.n;col.appendChild(lbl);
+      const cid=S.lastPlayed[i];const card=document.createElement('div');
+      if(cid){card.className=`card ${C[cid].cls} card-anim`;card.innerHTML=mkCardHTML(cid);}
+      else{card.className='card c-back';card.style.opacity='.2';card.innerHTML='<div class="back-icon">—</div><div class="back-label">脱落</div>';}
+      col.appendChild(card);fieldRow.appendChild(col);
+    });
+  }else{fieldArea.classList.remove('visible');}
+
+  const earthArrow=document.getElementById('earthArrow');
+  const earthLast=document.getElementById('earthLast');
+  if(S.lastEarth){
+    earthArrow.style.visibility='visible';earthLast.innerHTML='';
+    const lbl=document.createElement('div');lbl.className='earth-revealed-lbl';lbl.textContent='今回の地球カード';earthLast.appendChild(lbl);
+    const ec=document.createElement('div');ec.className=`card ${EARTH[S.lastEarth].cls} card-anim`;
+    ec.innerHTML=mkEarthCardHTML(S.lastEarth);earthLast.appendChild(ec);
+  }else{earthArrow.style.visibility='hidden';earthLast.innerHTML='';}
+
+  const hEl=document.getElementById('hCards');hEl.innerHTML='';
+  const lbl=document.getElementById('hLbl');
+  const human=S.ps[0];
+  if(S.over||human.dead){lbl.textContent='ゲーム終了';document.getElementById('goBtn').disabled=true;return;}
+  lbl.textContent=`手札 ${human.h.length} 枚 — 1枚選んでカードを出す`;
+  human.h.forEach((cid,i)=>{
+    const c=C[cid];const d=document.createElement('div');
+    d.className=`card ${c.cls}`+(i===sel?' sel':'');
+    d.innerHTML=mkCardHTML(cid);
+    d.onclick=()=>{if(S.over)return;sel=sel===i?-1:i;tgt=-1;draw();};
+    d.onmouseenter=()=>showDesc(cid);
+    d.onmouseleave=()=>hideDesc();
+    hEl.appendChild(d);
+  });
+  document.getElementById('goBtn').disabled=sel<0||S.over;
+
+  const logEl=document.getElementById('logEl');logEl.innerHTML='';
+  S.log.forEach(e=>{const d=document.createElement('div');d.className='log-e'+(e.c?' '+e.c:'');d.textContent=e.t;logEl.appendChild(d);});
+  logEl.scrollTop=logEl.scrollHeight;
+}
+
+function showDesc(cid){
+  const c=C[cid];
+  document.getElementById('cardInfoName').textContent=`${c.n}　[${c.cat}]`;
+  document.getElementById('cardInfoDesc').textContent=c.desc||'';
+}
+function hideDesc(){
+  document.getElementById('cardInfoName').textContent='';
+  document.getElementById('cardInfoDesc').textContent='カードにカーソルを合わせると説明が表示されます';
+}
+
+function addL(t,c){S.log.push({t,c});}
+init();
+</script>
+</body>
+</html>
