@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>デカップリングチャレンジ - 企画書</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:"Hiragino Sans","Noto Sans JP",sans-serif;background:#0a0a0f;color:#d4d4d8;line-height:1.9}
+    .hero{text-align:center;padding:70px 20px 50px;background:linear-gradient(180deg,rgba(34,197,94,.12)0%,transparent 100%)}
+    .hero h1{font-size:2.5rem;background:linear-gradient(135deg,#4ade80,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .meta{display:flex;justify-content:center;gap:20px;margin-top:18px;flex-wrap:wrap}
+    .meta span{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:5px 14px;border-radius:18px;font-size:.82rem;color:#a1a1aa}
+    .container{max-width:860px;margin:0 auto;padding:0 24px 80px}
+    .s{margin-bottom:28px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:32px}
+    .s h2{font-size:1.35rem;color:#4ade80;margin-bottom:14px;padding-bottom:7px;border-bottom:2px solid rgba(74,222,128,.2)}
+    .s h3{font-size:1.05rem;color:#86efac;margin:18px 0 8px}
+    .s p{margin-bottom:10px}.s ul{padding-left:18px;margin-bottom:10px}.s li{margin-bottom:5px}
+    .hl{background:rgba(74,222,128,.08);border-left:4px solid #4ade80;padding:14px 18px;border-radius:0 12px 12px 0;margin:14px 0}
+    .hw{background:rgba(239,68,68,.08);border-left:4px solid #f87171;padding:14px 18px;border-radius:0 12px 12px 0;margin:14px 0}
+    table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.9rem}
+    th{text-align:left;padding:9px 12px;background:rgba(74,222,128,.1);color:#4ade80;font-weight:600;border-bottom:2px solid rgba(74,222,128,.2)}
+    td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .cat-label{display:inline-block;padding:2px 10px;border-radius:6px;font-size:.75rem;font-weight:600;margin-bottom:6px}
+    .cat-red{background:rgba(239,68,68,.12);color:#f87171}
+    .cat-blue{background:rgba(59,130,246,.12);color:#60a5fa}
+    .cat-green{background:rgba(34,197,94,.12);color:#4ade80}
+    .cat-yellow{background:rgba(234,179,8,.12);color:#facc15}
+    .flow{display:flex;flex-direction:column;gap:7px;margin:14px 0}
+    .fs{display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:9px;border:1px solid rgba(255,255,255,.05)}
+    .fn{width:28px;height:28px;border-radius:50%;background:rgba(74,222,128,.15);color:#4ade80;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+    .cg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+    .ci{padding:14px;background:rgba(255,255,255,.03);border-radius:10px;border:1px solid rgba(255,255,255,.06)}
+    .ci strong{color:#4ade80;display:block;margin-bottom:3px}.ci span{font-size:.87rem;color:#a1a1aa}
+    .timeline{display:flex;gap:0;margin:14px 0}
+    .tl-item{flex:1;padding:14px;text-align:center;border:1px solid rgba(255,255,255,.06)}
+    .tl-item:first-child{border-radius:10px 0 0 10px}
+    .tl-item:last-child{border-radius:0 10px 10px 0}
+    .tl-item h4{font-size:.85rem;margin-bottom:6px}
+    .tl-item p{font-size:.78rem;color:#a1a1aa;line-height:1.5}
+    .tl-1{background:rgba(239,68,68,.06)}.tl-1 h4{color:#f87171}
+    .tl-2{background:rgba(234,179,8,.06)}.tl-2 h4{color:#facc15}
+    .tl-3{background:rgba(74,222,128,.06)}.tl-3 h4{color:#4ade80}
+    strong{color:#e4e4e7}
+    footer{text-align:center;padding:24px;color:#3f3f46;font-size:.8rem}
+    @media(max-width:600px){.hero h1{font-size:1.7rem}.s{padding:22px 16px}.cg,.timeline{grid-template-columns:1fr;flex-direction:column}}
+  </style>
+</head>
+<body>
+<div class="hero">
+  <h1>デカップリングチャレンジ</h1>
+  <div class="meta"><span>3〜4人</span><span>14歳以上</span><span>約15〜20分</span><span>カード70枚</span></div>
+</div>
+<div class="container">
+
+  <div class="s">
+    <h2>1. コンセプト</h2>
+    <div class="hl"><strong>経済を維持しながらCO₂を抑える = デカップリングを体感するゲーム</strong></div>
+  </div>
+
+  <div class="s">
+    <h2>2. 管理変数 & 勝利条件</h2>
+    <table>
+      <tr><th>変数</th><th>初期値</th><th>負け条件</th></tr>
+      <tr><td><strong>経済</strong></td><td>10</td><td style="color:#f87171">0以下で脱落（経済破綻）</td></tr>
+      <tr><td><strong>CO₂</strong></td><td>0</td><td style="color:#f87171">10以上で脱落（環境破綻）</td></tr>
+    </table>
+    <div class="hl"><strong>10ラウンド生き残った人の中で、経済 − CO₂ が最も高い人が勝ち。</strong></div>
+  </div>
+
+  <div class="s">
+    <h2>3. プレイヤーカード（全50枚）</h2>
+
+    <h3><span class="cat-label cat-red">従来エネルギー</span> 高排出・高経済 — 14枚</h3>
+    <p>経済を支える基盤カード。</p>
+    <table>
+      <tr><th>カード</th><th>経済</th><th>CO₂</th><th>枚数</th></tr>
+      <tr><td>石炭経済</td><td style="color:#4ade80">+4</td><td style="color:#f87171">+5</td><td>4</td></tr>
+      <tr><td>ガス経済</td><td style="color:#4ade80">+3</td><td style="color:#f87171">+3</td><td>6</td></tr>
+      <tr><td>再エネ経済</td><td style="color:#4ade80">+2</td><td style="color:#facc15">+1</td><td>4</td></tr>
+    </table>
+
+    <h3><span class="cat-label cat-blue">削減投資</span> デカップリング投資 — 11枚</h3>
+    <p>排出削減の主力。</p>
+    <table>
+      <tr><th>カード</th><th>経済</th><th>CO₂</th><th>枚数</th></tr>
+      <tr><td>グリーン投資</td><td style="color:#f87171">-2</td><td style="color:#60a5fa">-3</td><td>4</td></tr>
+      <tr><td>環境対策</td><td style="color:#f87171">-1</td><td style="color:#60a5fa">-2</td><td>4</td></tr>
+      <tr><td>省エネ（効率化）</td><td style="color:#4ade80">+1</td><td style="color:#60a5fa">-2</td><td>3</td></tr>
+    </table>
+
+    <h3><span class="cat-label cat-green">トランジション</span> 新しい脱炭素手段 — 12枚</h3>
+    <p>現実の"勝ち筋"カード。強いが希少。</p>
+    <table>
+      <tr><th>カード</th><th>経済</th><th>CO₂</th><th>枚数</th></tr>
+      <tr><td>電化</td><td>0</td><td style="color:#60a5fa">-3</td><td>2</td></tr>
+      <tr><td>再エネPPA</td><td style="color:#4ade80">+1</td><td style="color:#60a5fa">-1</td><td>3</td></tr>
+      <tr><td>蓄電・DR</td><td style="color:#4ade80">+1</td><td style="color:#60a5fa">-1</td><td>2</td></tr>
+      <tr><td>サーキュラー</td><td style="color:#4ade80">+2</td><td style="color:#60a5fa">-1</td><td>2</td></tr>
+      <tr><td>低炭素素材</td><td style="color:#4ade80">+1</td><td style="color:#60a5fa">-2</td><td>1</td></tr>
+      <tr><td>サプライヤー連携</td><td style="color:#4ade80">+2</td><td style="color:#60a5fa">-2</td><td>1</td></tr>
+      <tr><td>メタン・冷媒対策</td><td style="color:#4ade80">+1</td><td style="color:#60a5fa">-2</td><td>1</td></tr>
+    </table>
+
+    <h3><span class="cat-label cat-yellow">戦略</span> 戦略・操作カード — 13枚</h3>
+    <p>駆け引きと逆転要素。</p>
+    <table>
+      <tr><th>カード</th><th>経済</th><th>CO₂</th><th>枚数</th></tr>
+      <tr><td>技術革新</td><td style="color:#4ade80">+1</td><td>0</td><td>6</td></tr>
+      <tr><td>排出権取引</td><td style="color:#4ade80">+1</td><td style="color:#f87171">+2</td><td>7</td></tr>
+    </table>
+    <p style="font-size:.85rem;color:#71717a">※ 排出権取引: 他の1人にCO₂+2を押し付ける ／ 技術革新: 次ラウンド2枚引く</p>
+  </div>
+
+  <div class="s">
+    <h2>4. デカップリング曲線の再現</h2>
+    <div class="timeline">
+      <div class="tl-item tl-1"><h4>序盤</h4><p>石炭・ガスが強い<br>経済維持のため高排出が必要</p></div>
+      <div class="tl-item tl-2"><h4>中盤</h4><p>投資・PPA・電化が効き始める<br>CO₂削減への転換点</p></div>
+      <div class="tl-item tl-3"><h4>終盤</h4><p>改善したプレイヤーが有利<br>高排出を続けた人は破綻リスク</p></div>
+    </div>
+    <div class="hl"><strong>プレイ中に自然とデカップリング曲線が再現される</strong></div>
+  </div>
+
+  <div class="s">
+    <h2>5. 地球カード（全12枚）</h2>
+    <p>毎ラウンド終了時に1枚めくる（全12枚）。<strong>全プレイヤーに影響。</strong></p>
+    <table>
+      <tr><th>カード</th><th>枚数</th><th>効果</th></tr>
+      <tr><td>安定</td><td>4</td><td>何も起きない</td></tr>
+      <tr><td>温暖化</td><td>2</td><td><strong>全員</strong> CO₂ +2</td></tr>
+      <tr><td>不況</td><td>2</td><td><strong>全員</strong> 経済 -2</td></tr>
+      <tr><td>異常気象</td><td>2</td><td><strong>全員</strong> CO₂ +1 & 経済 -1</td></tr>
+      <tr><td>炭素税</td><td>1</td><td>CO₂最多に CO₂ +3</td></tr>
+      <tr><td style="color:#facc15;font-weight:700">戦争</td><td>1</td><td>経済最多 経済 -3 ／ 経済最少 経済 +3</td></tr>
+    </table>
+  </div>
+
+  <div class="s">
+    <h2>6. ラウンドの流れ</h2>
+    <div class="flow">
+      <div class="fs"><div class="fn">0</div><span>【初回のみ】山札から3枚配る</span></div>
+      <div class="fs"><div class="fn">1</div><span>山札から1枚引く（技術革新の効果があれば2枚）</span></div>
+      <div class="fs"><div class="fn">2</div><span>手札から1枚選択（全員同時）</span></div>
+      <div class="fs"><div class="fn">3</div><span>同時公開 → 経済・CO₂を変動</span></div>
+      <div class="fs"><div class="fn">4</div><span>脱落チェック（経済0以下 or CO₂10以上）</span></div>
+      <div class="fs"><div class="fn">5</div><span>地球カードを1枚めくる → 全体イベント</span></div>
+      <div class="fs"><div class="fn">6</div><span>残りの手札は持ち続ける</span></div>
+    </div>
+    <p>10ラウンド繰り返し。生存者の中で<strong>経済 − CO₂ が最も高い人が勝利</strong>。</p>
+  </div>
+
+  <div class="s">
+    <h2>7. ゲームの核</h2>
+    <div class="cg">
+      <div class="ci"><strong>経済を回さないと死ぬ</strong><span>経済0で脱落</span></div>
+      <div class="ci"><strong>経済を回すとCO₂が増える</strong><span>高経済=高排出</span></div>
+      <div class="ci"><strong>トランジションが切り札</strong><span>経済維持+CO₂削減、だが希少</span></div>
+      <div class="ci"><strong>排出権取引の駆け引き</strong><span>他人にCO₂を押し付ける攻撃</span></div>
+    </div>
+  </div>
+
+  <div class="s">
+    <h2>8. コンポーネント</h2>
+    <table>
+      <tr><th>種類</th><th>枚数</th></tr>
+      <tr><td>プレイヤーカード</td><td>50枚</td></tr>
+      <tr><td>地球カード</td><td>12枚</td></tr>
+      <tr><td>ステータスカード（経済4枚+CO₂ 4枚）</td><td>8枚</td></tr>
+      <tr><td><strong>合計</strong></td><td><strong>70枚</strong></td></tr>
+    </table>
+  </div>
+
+</div>
+<footer>デカップリングチャレンジ - Game Design Document</footer>
+</body>
+</html>
